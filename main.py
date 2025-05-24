@@ -38,89 +38,6 @@ for x_coord in range(-1, 2): # X-coordinates from -1 to 1
 pygame.mouse.set_visible(False)
 pygame.event.set_grab(True)
 
-# Game loop
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1: # Left mouse button
-                mx, my = event.pos
-                # Get matrices
-                projection_matrix = glGetDoublev(GL_PROJECTION_MATRIX)
-                modelview_matrix = glGetDoublev(GL_MODELVIEW_MATRIX)
-                viewport = glGetIntegerv(GL_VIEWPORT)
-
-                # Unproject mouse click
-                winX, winY = float(mx), float(viewport[3] - my) # Pygame Y is inverted
-                
-                # Near plane
-                world_near_x, world_near_y, world_near_z = gluUnProject(winX, winY, 0.0, modelview_matrix, projection_matrix, viewport)
-                # Far plane
-                world_far_x, world_far_y, world_far_z = gluUnProject(winX, winY, 1.0, modelview_matrix, projection_matrix, viewport)
-
-                ray_origin = [world_near_x, world_near_y, world_near_z]
-                
-                ray_dir_x = world_far_x - world_near_x
-                ray_dir_y = world_far_y - world_near_y
-                ray_dir_z = world_far_z - world_near_z
-                
-                # Normalize direction vector
-                length = math.sqrt(ray_dir_x**2 + ray_dir_y**2 + ray_dir_z**2)
-                ray_direction = [ray_dir_x/length, ray_dir_y/length, ray_dir_z/length]
-
-                # Ray-cube intersection test
-                for i, cube_pos in enumerate(cube_positions):
-                    if ray_intersects_cube(ray_origin, ray_direction, cube_pos, CUBE_SIZE):
-                        cube_positions.pop(i)
-                        break # Remove one cube per click
-
-        if event.type == pygame.MOUSEMOTION:
-            dx, dy = event.rel
-            camera_angle[1] += dx * mouse_sensitivity  # Yaw
-            camera_angle[0] -= dy * mouse_sensitivity  # Pitch
-            # Clamp pitch
-            camera_angle[0] = max(-90, min(90, camera_angle[0]))
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_w:
-                # Move forward
-                player_pos[0] -= move_speed * math.sin(math.radians(camera_angle[1]))
-                player_pos[2] += move_speed * math.cos(math.radians(camera_angle[1]))
-            if event.key == pygame.K_s:
-                # Move backward
-                player_pos[0] += move_speed * math.sin(math.radians(camera_angle[1]))
-                player_pos[2] -= move_speed * math.cos(math.radians(camera_angle[1]))
-            if event.key == pygame.K_a:
-                # Strafe left
-                player_pos[0] -= move_speed * math.cos(math.radians(camera_angle[1]))
-                player_pos[2] -= move_speed * math.sin(math.radians(camera_angle[1]))
-            if event.key == pygame.K_d:
-                # Strafe right
-                player_pos[0] += move_speed * math.cos(math.radians(camera_angle[1]))
-                player_pos[2] += move_speed * math.sin(math.radians(camera_angle[1]))
-
-    # OpenGL transformations
-    glLoadIdentity()  # Reset transformations
-    glRotatef(camera_angle[0], 1, 0, 0)  # Pitch
-    glRotatef(camera_angle[1], 0, 1, 0)  # Yaw
-    glRotatef(camera_angle[2], 0, 0, 1)  # Roll
-    glTranslatef(player_pos[0], player_pos[1], player_pos[2])
-
-    # Clear buffers
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
-    # Set cube color (e.g., green)
-    glColor3fv((0, 1, 0))
-
-    for position in cube_positions:
-        draw_cube(position)  # Render each cube at its position
-
-    pygame.display.flip()  # Update the full display
-
-# Quit Pygame
-pygame.quit()
-
 def ray_intersects_cube(ray_origin, ray_direction, cube_center, cube_size):
     """
     Checks if a ray intersects with an AABB cube.
@@ -252,3 +169,86 @@ def draw_cube(position):
         for vertex_index in face:
             glVertex3fv(vertices[vertex_index])
     glEnd()
+
+# Game loop
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1: # Left mouse button
+                mx, my = event.pos
+                # Get matrices
+                projection_matrix = glGetDoublev(GL_PROJECTION_MATRIX)
+                modelview_matrix = glGetDoublev(GL_MODELVIEW_MATRIX)
+                viewport = glGetIntegerv(GL_VIEWPORT)
+
+                # Unproject mouse click
+                winX, winY = float(mx), float(viewport[3] - my) # Pygame Y is inverted
+                
+                # Near plane
+                world_near_x, world_near_y, world_near_z = gluUnProject(winX, winY, 0.0, modelview_matrix, projection_matrix, viewport)
+                # Far plane
+                world_far_x, world_far_y, world_far_z = gluUnProject(winX, winY, 1.0, modelview_matrix, projection_matrix, viewport)
+
+                ray_origin = [world_near_x, world_near_y, world_near_z]
+                
+                ray_dir_x = world_far_x - world_near_x
+                ray_dir_y = world_far_y - world_near_y
+                ray_dir_z = world_far_z - world_near_z
+                
+                # Normalize direction vector
+                length = math.sqrt(ray_dir_x**2 + ray_dir_y**2 + ray_dir_z**2)
+                ray_direction = [ray_dir_x/length, ray_dir_y/length, ray_dir_z/length]
+
+                # Ray-cube intersection test
+                for i, cube_pos in enumerate(cube_positions):
+                    if ray_intersects_cube(ray_origin, ray_direction, cube_pos, CUBE_SIZE):
+                        cube_positions.pop(i)
+                        break # Remove one cube per click
+
+        if event.type == pygame.MOUSEMOTION:
+            dx, dy = event.rel
+            camera_angle[1] += dx * mouse_sensitivity  # Yaw
+            camera_angle[0] -= dy * mouse_sensitivity  # Pitch
+            # Clamp pitch
+            camera_angle[0] = max(-90, min(90, camera_angle[0]))
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_w:
+                # Move forward
+                player_pos[0] -= move_speed * math.sin(math.radians(camera_angle[1]))
+                player_pos[2] += move_speed * math.cos(math.radians(camera_angle[1]))
+            if event.key == pygame.K_s:
+                # Move backward
+                player_pos[0] += move_speed * math.sin(math.radians(camera_angle[1]))
+                player_pos[2] -= move_speed * math.cos(math.radians(camera_angle[1]))
+            if event.key == pygame.K_a:
+                # Strafe left
+                player_pos[0] -= move_speed * math.cos(math.radians(camera_angle[1]))
+                player_pos[2] -= move_speed * math.sin(math.radians(camera_angle[1]))
+            if event.key == pygame.K_d:
+                # Strafe right
+                player_pos[0] += move_speed * math.cos(math.radians(camera_angle[1]))
+                player_pos[2] += move_speed * math.sin(math.radians(camera_angle[1]))
+
+    # OpenGL transformations
+    glLoadIdentity()  # Reset transformations
+    glRotatef(camera_angle[0], 1, 0, 0)  # Pitch
+    glRotatef(camera_angle[1], 0, 1, 0)  # Yaw
+    glRotatef(camera_angle[2], 0, 0, 1)  # Roll
+    glTranslatef(player_pos[0], player_pos[1], player_pos[2])
+
+    # Clear buffers
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+    # Set cube color (e.g., green)
+    glColor3fv((0, 1, 0))
+
+    for position in cube_positions:
+        draw_cube(position)  # Render each cube at its position
+
+    pygame.display.flip()  # Update the full display
+
+# Quit Pygame
+pygame.quit()
